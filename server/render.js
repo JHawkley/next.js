@@ -6,7 +6,7 @@ import generateETag from 'etag'
 import fresh from 'fresh'
 import requirePage, {normalizePagePath} from './require'
 import { Router } from '../lib/router'
-import { loadGetInitialProps, isResSent } from '../lib/utils'
+import { loadGetInitialProps, loadGetRenderProps, isResSent } from '../lib/utils'
 import Head, { defaultHead } from '../lib/head'
 import ErrorDebug from '../lib/error-debug'
 import Loadable from '../lib/loadable'
@@ -97,7 +97,9 @@ async function doRender (req, res, pathname, query, {
   const asPath = req.url
   const ctx = { err, req, res, pathname: page, query, asPath }
   const router = new Router(page, query, asPath)
-  const props = await loadGetInitialProps(App, {Component, router, ctx})
+  const appCtx = { Component, router, ctx }
+  const props = await loadGetInitialProps(App, appCtx)
+  const renderProps = await loadGetRenderProps(App, props, appCtx, true)
   const devFiles = buildManifest.devFiles
   const files = [
     ...new Set([
@@ -131,7 +133,7 @@ async function doRender (req, res, pathname, query, {
       <EnhancedApp {...{
         Component: EnhancedComponent,
         router,
-        ...props
+        ...renderProps
       }} />
     </LoadableCapture>
 

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom'
 import HeadManager from './head-manager'
 import { createRouter } from '../lib/router'
 import EventEmitter from '../lib/EventEmitter'
-import { loadGetInitialProps, getURL } from '../lib/utils'
+import { loadGetInitialProps, loadGetRenderProps, getURL } from '../lib/utils'
 import PageLoader from '../lib/page-loader'
 import * as asset from '../lib/asset'
 import * as envConfig from '../lib/runtime-config'
@@ -157,19 +157,21 @@ function renderReactElement (reactEl, domEl) {
 }
 
 async function doRender ({ App, Component, props, err, emitter: emitterProp = emitter }) {
+  const { pathname, query, asPath } = router
+  const appCtx = { Component, router, ctx: { err, pathname, query, asPath } }
+
   // Usual getInitialProps fetching is handled in next/router
   // this is for when ErrorComponent gets replaced by Component by HMR
   if (!props && Component &&
     Component !== ErrorComponent &&
     lastAppProps.Component === ErrorComponent) {
-    const { pathname, query, asPath } = router
-    props = await loadGetInitialProps(App, {Component, router, ctx: {err, pathname, query, asPath}})
+    props = await loadGetInitialProps(App, appCtx)
   }
 
   Component = Component || lastAppProps.Component
   props = props || lastAppProps.props
 
-  const appProps = { Component, err, router, headManager, ...props }
+  const appProps = await loadGetRenderProps(App, { Component, err, router, headManager, ...props }, appCtx, isInitialRender)
   // lastAppProps has to be set before ReactDom.render to account for ReactDom throwing an error.
   lastAppProps = appProps
 
